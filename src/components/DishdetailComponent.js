@@ -1,8 +1,11 @@
 import { Card, CardImg, CardText, CardBody,
-    CardTitle, Breadcrumb, BreadcrumbItem, Button, Modal, ModalHeader, ModalBody, Label, Row, Col,  } from 'reactstrap';
+        CardTitle, Breadcrumb, BreadcrumbItem, Button, Modal, ModalHeader, ModalBody, Label, Row, Col,  } from 'reactstrap';
 import { Control, LocalForm, Errors } from 'react-redux-form';
 import { Link } from 'react-router-dom';
 import React, { Component } from 'react';
+import { Loading } from './LoadingComponent';
+import { baseUrl } from '../shared/baseUrl';
+import { FadeTransform, Fade, Stagger } from 'react-animation-components';
 
 const required = (val) => val && val.length;
 const maxLength = (len) => (val) => !(val) || (val.length <= len);
@@ -24,8 +27,8 @@ constructor(props) {
         });
       }
 	
-	 handleSubmit(values) {
-        this.props.addComment(this.props.dishId, values.rating, values.author, values.comment);
+	handleSubmit(values) {
+        this.props.postComment(this.props.dishId, values.rating, values.author, values.comment);
     }
 	
 	
@@ -95,13 +98,19 @@ constructor(props) {
 function RenderDish({dish}) {
         if (dish != null)
             return (
-                <Card >
-                    <CardImg width="100%" src={dish.image} alt={dish.name} />
-                    <CardBody>
-                        <CardTitle>{dish.name}</CardTitle>
-                        <CardText>{dish.description}</CardText>
-                    </CardBody>
-                </Card>
+                <FadeTransform
+                in
+                transformProps={{
+                    exitTransform: 'scale(0.5) translateY(-50%)'
+                }}>
+            <Card>
+                <CardImg top src={baseUrl + dish.image} alt={dish.name} />
+                <CardBody>
+                    <CardTitle>{dish.name}</CardTitle>
+                    <CardText>{dish.description}</CardText>
+                </CardBody>
+            </Card>
+            </FadeTransform>
             );
         else
             return (
@@ -109,23 +118,30 @@ function RenderDish({dish}) {
             );
     }
 	
-function RenderComments({comments, addComment, dishId}) {
+function RenderComments({comments, postComment, dishId}) {
         if (comments.length !== 0) {
             return (
                 <div>
                     <h4>Comments</h4>
+                     <Stagger in>
                     {comments.map(comment => (
+                        <div>
                         <ul className="list-unstyled">
+                        <Fade in>
                             <li>
-                                <p>{comment.comment}</p>
-                                <p>-- {comment.author} , {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit'}).format(new Date(Date.parse(comment.date)))}</p>
+                                <div>{comment.comment}</div>
+                                <div>-- {comment.author} , {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit'}).format(new Date(Date.parse(comment.date)))}</div>
                             </li>
+                        </Fade>
                         </ul>
+                       
+                        </div>     
                     )
                     )}
-				    <p>
-					 <CommentForm dishId={dishId} addComment={addComment} />
-					</p>
+                     </Stagger>
+				    <div>
+					 <CommentForm dishId={dishId} postComment={postComment} />
+					</div>
                 </div>
 			
           
@@ -142,7 +158,25 @@ function RenderComments({comments, addComment, dishId}) {
 	
 	
 const DishDetail = (props) =>  {
-     	if (props.dish != null) {
+            if (props.isLoading) {
+            return(
+                <div className="container">
+                    <div className="row">            
+                        <Loading />
+                    </div>
+                </div>
+            );
+        }
+        else if (props.errMess) {
+            return(
+                <div className="container">
+                    <div className="row">            
+                        <h4>{props.errMess}</h4>
+                    </div>
+                </div>
+            );
+        }
+        else if (props.dish != null) {
            return  (
 				<div className="container">
                 <div className="row">
@@ -161,7 +195,7 @@ const DishDetail = (props) =>  {
                     </div>
                     <div className="col-12 col-md-5 m-1">
                         <RenderComments comments={props.comments}
-                          addComment={props.addComment}
+                          postComment={props.postComment}
                           dishId={props.dish.id} />
                     </div>
                 </div>
